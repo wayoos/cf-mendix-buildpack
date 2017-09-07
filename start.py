@@ -19,6 +19,7 @@ import metrics
 from nginx import get_path_config, gen_htpasswd
 from buildpackutil import i_am_primary_instance
 import traceback
+import threading
 
 logger.setLevel(buildpackutil.get_buildpack_loglevel())
 
@@ -892,6 +893,8 @@ def display_running_version(m2ee):
 
 def loop_until_process_dies(m2ee):
     while True:
+        print('these threads are running')
+        show_threads()
         if app_is_restarting or m2ee.runner.check_pid():
             time.sleep(10)
         else:
@@ -946,6 +949,16 @@ def complete_start_procedure_safe_to_use_for_restart(m2ee):
     configure_logging(m2ee)
     display_running_version(m2ee)
     configure_debugger(m2ee)
+
+
+def show_threads():
+    id2thread = {}
+    for thread in threading.enumerate():
+        id2thread[thread.ident] = thread
+    for thread_id, frame in sys._current_frames().items():
+        stack = traceback.format_list(traceback.extract_stack(frame))
+        print("Thread: %s (%d)" % (id2thread[thread_id].name, thread_id))
+        print("".join(stack))
 
 
 if __name__ == '__main__':
