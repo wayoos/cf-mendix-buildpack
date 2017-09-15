@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 import json
 import os
 import re
@@ -489,7 +489,7 @@ def get_custom_settings(metadata, existing_config):
         custom_settings_key = 'Configuration'
         if custom_settings_key in metadata:
             config = {}
-            for k, v in metadata[custom_settings_key].iteritems():
+            for k, v in metadata[custom_settings_key].items():
                 if k not in existing_config:
                     config[k] = v
             return config
@@ -507,7 +507,7 @@ def get_custom_runtime_settings():
     except Exception as e:
         logger.warning('Failed to parse CUSTOM_RUNTIME_SETTINGS: ' + str(e))
 
-    for k, v in os.environ.iteritems():
+    for k, v in os.environ.items():
         if k.startswith('MXRUNTIME_'):
             custom_runtime_settings[
                 k.replace('MXRUNTIME_', '', 1).replace('_', '.')
@@ -886,7 +886,7 @@ def configure_debugger(m2ee):
 
 def _transform_logging(nodes):
     res = []
-    for k, v in nodes.iteritems():
+    for k, v in nodes.items():
         res.append({
             "name": k,
             "level": v
@@ -895,7 +895,7 @@ def _transform_logging(nodes):
 
 
 def configure_logging(m2ee):
-    for k, v in os.environ.iteritems():
+    for k, v in os.environ.items():
         if k.startswith('LOGGING_CONFIG'):
             m2ee.set_log_levels(
                 '*',
