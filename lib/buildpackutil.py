@@ -269,7 +269,11 @@ def ensure_mxbuild_in_directory(directory, mx_version, cache_dir):
 
 def _checkout_from_git_rootfs(directory, mx_version):
     mendix_runtimes_path = '/usr/local/share/mendix-runtimes.git'
-    if not os.path.isdir(mendix_runtimes_path):
+    if (
+        not os.path.isdir(mendix_runtimes_path)
+        or
+        os.environ.get('DISABLE_ROOTFS_OPTIMIZATIONS')
+    ):
         raise NotFoundException()
 
     env = dict(os.environ)
@@ -356,6 +360,8 @@ def ensure_and_get_mono(mx_version, cache_dir):
     fallback_location = '/tmp/opt'
     try:
         mono_location = _get_mono_path('/tmp/opt', mono_version)
+        if os.environ.get('DISABLE_ROOTFS_OPTIMIZATIONS'):
+            raise NotFoundException()
     except NotFoundException:
         logging.debug('Mono not found in default locations')
         download_and_unpack(
@@ -373,7 +379,7 @@ def ensure_and_get_jvm(mx_version, cache_dir, dot_local_location, package='jdk')
     java_version = get_java_version(mx_version)
 
     rootfs_java_path = '/usr/lib/jvm/jdk-%s-oracle-x64' % java_version
-    if not os.path.isdir(rootfs_java_path):
+    if not os.path.isdir(rootfs_java_path) or os.environ.get('DISABLE_ROOTFS_OPTIMIZATIONS'):
         logging.debug('rootfs without java sdk detected')
         download_and_unpack(
             get_blobstore_url('/mx-buildpack/%s-%s-linux-x64.tar.gz' % (package, java_version)),

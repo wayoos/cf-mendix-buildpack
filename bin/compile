@@ -111,7 +111,11 @@ def download_mendix_version():
 
     git_repo_found = os.path.isdir('/usr/local/share/mendix-runtimes.git')
 
-    if git_repo_found and not os.environ.get('FORCED_MXRUNTIME_URL'):
+    if git_repo_found and not (
+        os.environ.get('FORCED_MXRUNTIME_URL')
+        or
+        os.environ.get('DISABLE_ROOTFS_OPTIMIZATIONS')
+    ):
         logging.debug('rootfs with mendix runtime detected, skipping download')
         return
 
