@@ -10,12 +10,6 @@ import requests
 
 
 def get_database_config(development_mode=False):
-    if any(map(
-            lambda x: x.startswith('MXRUNTIME_Database'),
-            os.environ.keys()
-    )):
-        return {}
-
     url = get_database_uri_from_vcap()
     if url is None:
         url = os.environ['DATABASE_URL']
