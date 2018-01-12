@@ -21,11 +21,12 @@ import metrics
 from m2ee import M2EE, logger
 from nginx import get_path_config, gen_htpasswd
 from buildpackutil import i_am_primary_instance
+from statsd import start_telegraf_sidecar_and_configure_java_agent
 
 logger.setLevel(buildpackutil.get_buildpack_loglevel())
 
 
-logger.info('Started Mendix Cloud Foundry Buildpack v1.7.9')
+logger.info('Started Mendix Cloud Foundry Buildpack v1.7.9-statsd')
 
 logging.getLogger('m2ee').propagate = False
 
@@ -980,7 +981,8 @@ if __name__ == '__main__':
         )
     pre_process_m2ee_yaml()
     activate_license()
-    m2ee = set_up_m2ee_client(get_vcap_data())
+    vcap = get_vcap_data()
+    m2ee = set_up_m2ee_client(vcap)
 
     def sigterm_handler(_signo, _stack_frame):
         m2ee.stop()
@@ -990,6 +992,10 @@ if __name__ == '__main__':
 
     try:
         service_backups()
+        start_telegraf_sidecar_and_configure_java_agent(
+            vcap['application_name'],
+            m2ee,
+        )
         set_up_nginx_files(m2ee)
         complete_start_procedure_safe_to_use_for_restart(m2ee)
         set_up_instadeploy_if_deploy_password_is_set(m2ee)

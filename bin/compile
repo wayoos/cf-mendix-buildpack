@@ -16,6 +16,7 @@ BUILD_ERRORS_JSON = '/tmp/builderrors.json'
 sys.path.insert(0, os.path.join(BUILDPACK_DIR, 'lib'))
 import requests
 import buildpackutil
+import statsd
 from m2ee.version import MXVersion
 
 
@@ -278,6 +279,7 @@ if __name__ == '__main__':
             shutil.rmtree(path, ignore_errors=True)
     set_up_directory_structure()
     set_up_java()
+    statsd.download_resources_in_compile_phase()
     set_up_appdynamics()
     download_mendix_version()
     copy_buildpack_resources()
