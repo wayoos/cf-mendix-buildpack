@@ -516,6 +516,25 @@ def get_custom_runtime_settings():
     return custom_runtime_settings
 
 
+def get_subscription_license():
+    vcap_services = buildpackutil.get_vcap_services_data()
+    service_name = 'mendix-subscription'
+    if service_name in vcap_services:
+        try:
+            credentials = vcap_services[service_name][0]['credentials']
+            logger.info('Mendix Subscription license model detected')
+            subscription = {
+                'License.LicenseServerURL': 'https://subscription-api.mendix.com/activate',
+                'License.UseLicenseServer': True,
+                'License.SubscriptionSecret': credentials['subscription_secret'],
+                'License.EnvironmentName': credentials['name'],
+            }
+            return subscription
+        except Exception as e:
+            logger.warning('Failed to setup Mendix Subscription License model: ' + str(e))
+    return {}
+
+
 def is_development_mode():
     return os.getenv('DEVELOPMENT_MODE', '').lower() == 'true'
 
@@ -559,6 +578,7 @@ def set_runtime_config(metadata, mxruntime_config, vcap_data, m2ee):
     mxruntime_config.update(get_client_certificates())
     mxruntime_config.update(get_custom_settings(metadata, mxruntime_config))
     mxruntime_config.update(get_custom_runtime_settings())
+    mxruntime_config.update(get_subscription_license())
 
 
 def set_application_name(m2ee, name):
