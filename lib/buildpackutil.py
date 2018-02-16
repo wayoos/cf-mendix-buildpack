@@ -3,6 +3,7 @@ import re
 import json
 import errno
 import subprocess
+import urllib2
 import logging
 import sys
 sys.path.insert(0, 'lib')
@@ -50,7 +51,7 @@ def get_database_config(development_mode=False):
     config = {
         'DatabaseType': database_type,
         'DatabaseUserName': match.group('user'),
-        'DatabasePassword': match.group('password'),
+        'DatabasePassword': urllib2.unquote(match.group('password')).decode('utf8'),
         'DatabaseHost': match.group('host'),
         'DatabaseName': match.group('dbname'),
     }
