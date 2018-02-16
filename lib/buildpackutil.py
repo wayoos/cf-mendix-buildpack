@@ -54,6 +54,12 @@ def get_database_config(development_mode=False):
         'DatabaseHost': match.group('host'),
         'DatabaseName': match.group('dbname'),
     }
+    v = get_vcap_services_data()
+    if v and 'azure-sqldb' in v:
+        if 'jdbcUrl' in vcap_services[service_type_name][0]['credentials']:
+            del config['DatabasePassword']
+            config['DatabaseJdbcUrl'] = vcap_services[service_type_name][0]['credentials']['jdbcUrl']
+
     if development_mode:
         config.update({
             'ConnectionPoolingMaxIdle': 1,
