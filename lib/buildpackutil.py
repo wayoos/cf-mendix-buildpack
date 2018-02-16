@@ -57,7 +57,6 @@ def get_database_config(development_mode=False):
     v = get_vcap_services_data()
     if v and 'azure-sqldb' in v:
         if 'jdbcUrl' in v['azure-sqldb'][0]['credentials']:
-            del config['DatabasePassword']
             config['DatabaseJdbcUrl'] = v['azure-sqldb'][0]['credentials']['jdbcUrl']
 
     if development_mode:
