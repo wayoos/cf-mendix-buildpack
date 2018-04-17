@@ -93,6 +93,15 @@ def set_up_nginx_files(m2ee):
         mxbuild_upstream = 'proxy_pass http://mendix_mxbuild'
     else:
         mxbuild_upstream = 'return 501'
+    if os.getenv('FORCE_HTTPS', 'false').lower() == 'true':
+        force_https = '''
+    if ($http_x_forwarded_proto != "https") {
+        return 301 https://$host$request_uri;
+    }
+    '''
+    else:
+        force_https = ''
+
     with open('nginx/conf/nginx.conf') as fh:
         lines = ''.join(fh.readlines())
     lines = lines.replace(
@@ -109,6 +118,8 @@ def set_up_nginx_files(m2ee):
         'ROOT', os.getcwd()
     ).replace(
         'XFRAMEOPTIONS', x_frame_options
+    ).replace(
+        'FORCE_HTTPS', force_https,
     ).replace(
         'MXBUILD_UPSTREAM', mxbuild_upstream
     )
