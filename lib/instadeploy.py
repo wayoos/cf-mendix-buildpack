@@ -74,12 +74,10 @@ class InstaDeployThread(threading.Thread):
 class MPKUploadHandler(BaseHTTPRequestHandler):
     def process_request(self):
         try:
-            headers = self.headers.copy().update({
-                "content-disposition": "attachment; filename=app.mpk"
-            })
+            self.headers["content-disposition"] = "attachment; filename=app.mpk"
             form = cgi.FieldStorage(
                 fp=self.rfile,
-                headers=headers,
+                headers=self.headers,
                 environ={
                     'REQUEST_METHOD': 'POST',
                     'CONTENT_TYPE': self.headers['Content-Type'],
