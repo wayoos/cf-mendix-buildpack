@@ -82,17 +82,11 @@ class MPKUploadHandler(BaseHTTPRequestHandler):
                     'REQUEST_METHOD': 'POST',
                     'CONTENT_TYPE': self.headers['Content-Type'],
                 })
-            try:
-                logger.critical(form.__dict__)
-            except Exception:
-                pass
-            logger.critical("self.rfile")
-            logger.critical(self.rfile)
-            logger.critical(type(self.rfile))
             if 'file' in form:
                 logger.critical("form file")
                 logger.critical(form['file'])
                 logger.critical(type(form['file']))
+                logger.critical(type(form['file'].file))
 
                 with open(MPK_FILE, 'wb') as output:
                     shutil.copyfileobj(form['file'].file, output)
@@ -128,7 +122,7 @@ class MPKUploadHandler(BaseHTTPRequestHandler):
             return (200, {'state': 'FAILED'}, mbf.mxbuild_response)
 
         except Exception as e:
-            log.error("Failed to upload MPK", exc_info=True)
+            logger.error("Failed to upload MPK", exc_info=True)
             return (200, {
                 'state': 'STARTED',
                 'errordetails': traceback.format_exc(),
