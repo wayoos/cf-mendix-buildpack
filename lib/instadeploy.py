@@ -77,6 +77,7 @@ class MPKUploadHandler(BaseHTTPRequestHandler):
             logger.critical(self.headers)
             form = cgi.FieldStorage(
                 fp=self.rfile,
+                filename='lol if this works',
                 headers=self.headers,
                 environ={
                     'REQUEST_METHOD': 'POST',
