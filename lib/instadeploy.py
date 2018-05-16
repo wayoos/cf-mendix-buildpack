@@ -81,6 +81,10 @@ class MPKUploadHandler(BaseHTTPRequestHandler):
                     'REQUEST_METHOD': 'POST',
                     'CONTENT_TYPE': self.headers['Content-Type'],
                 })
+            logger.critical("self.rfile:")
+            logger.critical(self.rfile)
+            logger.critical("form[file].file")
+            logger.critical(form['file'].file)
             if 'file' in form:
                 with open(MPK_FILE, 'wb') as output:
                     logger.critical("blah2")
