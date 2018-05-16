@@ -74,19 +74,21 @@ class InstaDeployThread(threading.Thread):
 class MPKUploadHandler(BaseHTTPRequestHandler):
     def process_request(self):
         try:
+            logger.critical(self.headers)
             self.headers["content-disposition"] = "attachment; filename=app.mpk"
-            form = cgi.FieldStorage(
-                fp=self.rfile,
-                headers=self.headers,
-                environ={
-                    'REQUEST_METHOD': 'POST',
-                    'CONTENT_TYPE': self.headers['Content-Type'],
-                })
+            # form = cgi.FieldStorage(
+            #     fp=self.rfile,
+            #     headers=self.headers,
+            #     environ={
+            #         'REQUEST_METHOD': 'POST',
+            #         'CONTENT_TYPE': self.headers['Content-Type'],
+            #     })
             logger.critical("self.rfile:")
             logger.critical(self.rfile)
-            logger.critical("form[file].file")
-            logger.critical(form['file'].file)
-            if 'file' in form:
+            # logger.critical("form[file].file")
+            # logger.critical(form['file'].file)
+            # if 'file' in form:
+            if True:
                 with open(MPK_FILE, 'wb') as output:
                     for line in self.rfile:
                         output.write(line)
