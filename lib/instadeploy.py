@@ -127,9 +127,10 @@ class MPKUploadHandler(BaseHTTPRequestHandler):
             logger.warning('InstaDeploy terminating with MxBuildFailure: {}'.format(mbf.message))
             return (200, {'state': 'FAILED'}, mbf.mxbuild_response)
 
-        except Exception:
-            return (500, {
-                'state': 'FAILED',
+        except Exception as e:
+            log.error("Failed to upload MPK", exc_info=True)
+            return (200, {
+                'state': 'STARTED',
                 'errordetails': traceback.format_exc(),
             }, None)
 
