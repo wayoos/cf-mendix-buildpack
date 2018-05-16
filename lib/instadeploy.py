@@ -74,6 +74,7 @@ class InstaDeployThread(threading.Thread):
 class MPKUploadHandler(BaseHTTPRequestHandler):
     def process_request(self):
         try:
+            logger.critical(self.headers)
             form = cgi.FieldStorage(
                 fp=self.rfile,
                 headers=self.headers,
@@ -81,6 +82,9 @@ class MPKUploadHandler(BaseHTTPRequestHandler):
                     'REQUEST_METHOD': 'POST',
                     'CONTENT_TYPE': self.headers['Content-Type'],
                 })
+            logger.critical("self.rfile")
+            logger.critical(self.rfile)
+            logger.critical(type(self.rfile))
             if 'file' in form:
                 with open(MPK_FILE, 'wb') as output:
                     shutil.copyfileobj(form['file'].file, output)
