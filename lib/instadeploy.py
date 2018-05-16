@@ -82,10 +82,18 @@ class MPKUploadHandler(BaseHTTPRequestHandler):
                     'REQUEST_METHOD': 'POST',
                     'CONTENT_TYPE': self.headers['Content-Type'],
                 })
+            try:
+                logger.critical(form.__dict__)
+            except Exception:
+                pass
             logger.critical("self.rfile")
             logger.critical(self.rfile)
             logger.critical(type(self.rfile))
             if 'file' in form:
+                logger.critical("form file")
+                logger.critical(form['file'])
+                logger.critical(type(form['file']))
+
                 with open(MPK_FILE, 'wb') as output:
                     shutil.copyfileobj(form['file'].file, output)
                 update_project_dir()
