@@ -82,6 +82,10 @@ class MPKUploadHandler(BaseHTTPRequestHandler):
                     'CONTENT_TYPE': self.headers['Content-Type'],
                 })
             if 'file' in form:
+                if not form['file'].filename:
+                    form['file'].filename = 'send correct headers!'
+                    log.info("no filename was sent")
+
                 with open(MPK_FILE, 'wb') as output:
                     shutil.copyfileobj(form['file'].file, output)
                 update_project_dir()
@@ -115,7 +119,8 @@ class MPKUploadHandler(BaseHTTPRequestHandler):
             logger.warning('InstaDeploy terminating with MxBuildFailure: {}'.format(mbf.message))
             return (200, {'state': 'FAILED'}, mbf.mxbuild_response)
 
-        except Exception:
+        except Exception as e:
+            logger.error("Instadeploy failed", exc_info=True)
             return (500, {
                 'state': 'FAILED',
                 'errordetails': traceback.format_exc(),
