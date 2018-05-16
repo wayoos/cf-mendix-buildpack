@@ -74,9 +74,12 @@ class InstaDeployThread(threading.Thread):
 class MPKUploadHandler(BaseHTTPRequestHandler):
     def process_request(self):
         try:
+            headers = self.headers.copy().update({
+                "content-disposition": "attachment; filename=app.mpk"
+            })
             form = cgi.FieldStorage(
                 fp=self.rfile,
-                headers=self.headers,
+                headers=headers,
                 environ={
                     'REQUEST_METHOD': 'POST',
                     'CONTENT_TYPE': self.headers['Content-Type'],
@@ -87,8 +90,8 @@ class MPKUploadHandler(BaseHTTPRequestHandler):
             logger.critical(form['file'].file)
             if 'file' in form:
                 with open(MPK_FILE, 'wb') as output:
-                    logger.critical("blah2")
-                    shutil.copyfileobj(self.rfile, output)
+                    logger.critical("blah4")
+                    shutil.copyfileobj(form['file'].file, output)
                 update_project_dir()
                 mxbuild_response = build()
                 logger.debug(mxbuild_response)
