@@ -82,9 +82,9 @@ class MPKUploadHandler(BaseHTTPRequestHandler):
                     'CONTENT_TYPE': self.headers['Content-Type'],
                 })
             if 'file' in form:
-                with open(MPK_FILE, 'w') as output:
+                with open(MPK_FILE, 'wb') as output:
                     logger.critical("blah")
-                    shutil.copyfileobj(form['file'].file, output)
+                    shutil.copyfileobj(self.rfile, output)
                 update_project_dir()
                 mxbuild_response = build()
                 logger.debug(mxbuild_response)
