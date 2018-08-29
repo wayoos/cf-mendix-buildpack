@@ -775,6 +775,7 @@ def service_backups():
                 'apiKey': schnapps_api_key
             },
             data=json.dumps(backup_service),
+            verify=False,
         )
     except requests.exceptions.SSLError as e:
         logger.warning('Failed to contact backup service. SSLError: ' + str(e))
