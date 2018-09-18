@@ -1012,6 +1012,16 @@ def complete_start_procedure_safe_to_use_for_restart(m2ee):
     configure_debugger(m2ee)
 
 
+def patch_runtime():
+    from shutil import copyfile
+    for dirpath, dirnames, files in os.walk('runtimes'):
+        for runtime_version in dirnames:
+            jar = os.path.join('runtimes', runtime_version, 'runtime', 'bundles', 'com.mendix.storage-s3.jar')
+            if os.path.exists(jar):
+                logger.info('Patching %s' % jar)
+                copyfile('lib/patches/com.mendix.storage-s3.jar', jar)
+
+
 if __name__ == '__main__':
     if os.getenv('CF_INSTANCE_INDEX') is None:
         logger.warning(
@@ -1045,6 +1055,7 @@ if __name__ == '__main__':
     try:
         service_backups()
         set_up_nginx_files(m2ee)
+        patch_runtime()
         telegraf.run()
         datadog.run()
         complete_start_procedure_safe_to_use_for_restart(m2ee)
