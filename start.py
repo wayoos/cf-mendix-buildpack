@@ -707,16 +707,11 @@ def set_up_m2ee_client(vcap_data):
 def set_up_logging_file():
     buildpackutil.lazy_remove_file('log/out.log')
     os.mkfifo('log/out.log')
-    log_ratelimit = os.getenv('LOG_RATELIMIT', None)
-    if log_ratelimit is None:
-        subprocess.Popen([
-            'sed',
-            '--unbuffered',
-            's|^[0-9\-]\+\s[0-9:\.]\+\s||',
-            'log/out.log',
-        ])
-    else:
-        subprocess.Popen(['./bin/mendix-logfilter', '-r', log_ratelimit, '-f', 'log/out.log'])
+    log_max_buffer_size = os.getenv('LOG_MAX_BUFFER_SIZE', None)
+    log_max_storage_length = os.getenv('LOG_MAX_STORAGE_LENGTH', None)
+    log_interval = os.getenv('LOG_INTERVAL', None)
+
+    subprocess.Popen(['./bin/ringo.py', '--max-buffer-size', log_max_buffer_size, '--max-storage-length', log_max_storage_length, '--interval', log_interval ], stdout=open('log/out.log') )
 
 
 def service_backups():
