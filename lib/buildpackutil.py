@@ -501,3 +501,7 @@ def bypass_loggregator_logging():
 
 def get_metrics_url():
     return os.getenv("TRENDS_STORAGE_URL")
+
+
+def get_logs_storage_url():
+    return os.getenv("LOGS_STORAGE_URL")
