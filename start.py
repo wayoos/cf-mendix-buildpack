@@ -825,6 +825,23 @@ def set_up_logging_file():
                 "log/out.log",
             ]
         )
+    if False:
+        log_max_buffer_size = os.getenv("LOG_MAX_BUFFER_SIZE", None)
+        log_max_storage_length = os.getenv("LOG_MAX_STORAGE_LENGTH", None)
+        log_interval = os.getenv("LOG_INTERVAL", None)
+
+        subprocess.Popen(
+            [
+                "./bin/ringo.py",
+                "--max-buffer-size",
+                log_max_buffer_size,
+                "--max-storage-length",
+                log_max_storage_length,
+                "--interval",
+                log_interval,
+            ],
+            stdout=open("log/out.log"),
+        )
 
 
 def service_backups():
