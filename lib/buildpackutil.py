@@ -13,6 +13,14 @@ sys.path.insert(0, "lib")
 import requests  # noqa: E402
 
 
+def int_or_default(value, default=0):
+    try:
+        return int(value)
+    except Exception as e:
+        logging.debug("Failed to coerce %s to int.", value, exc_info=True)
+        return default
+
+
 def get_database_config(development_mode=False):
     if any(
         [x.startswith("MXRUNTIME_Database") for x in list(os.environ.keys())]
@@ -501,6 +509,28 @@ def bypass_loggregator_logging():
 
 def get_metrics_url():
     return os.getenv("TRENDS_STORAGE_URL")
+
+
+def should_use_new_logging_pipeline():
+    env_var = os.get_env("NEW_LOGGING_PIPELINE", "False")
+    try:
+        use_new_logging_pipeline = strtobool(env_var)
+    except ValueError as e:
+        logging.debug(
+            "Can't cast value of NEW_LOGGING_PIPELINE to bool. "
+            "Not turning on new logging pipeline."
+        )
+        return False
+    if use_new_logging_pipeline:
+        if get_logs_storage_url():
+            return True
+        else:
+            logging.debug(
+                "NEW_LOGGING_PIPELINE is true, but no logs storage url "
+                "is configured. Not turning on new logging pipeline"
+            )
+            return False
+    return False
 
 
 def get_logs_storage_url():

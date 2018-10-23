@@ -2,7 +2,7 @@
 
 import argparse
 
-# TODO maybe thisb breaks
+# TODO maybe this breaks
 from lib.ringo import run_logger_buffer_flusher
 
 if __name__ == "__main__":

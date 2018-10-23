@@ -23,10 +23,11 @@ import telegraf  # noqa: E402
 import datadog  # noqa: E402
 import instadeploy  # noqa: E402
 import requests  # noqa: E402
+import ringo  # noqa: E402
 
 from m2ee import M2EE, logger  # noqa: E402
 from nginx import get_path_config, gen_htpasswd  # noqa: E402
-from buildpackutil import i_am_primary_instance  # noqa: E402
+from buildpackutil import i_am_primary_instance, int_or_default  # noqa: E402
 
 HEARTBEAT_SOURCE_STRING = """Gur Mra bs Clguba, ol Gvz Crgref
 Ornhgvshy vf orggre guna htyl.
@@ -825,23 +826,24 @@ def set_up_logging_file():
                 "log/out.log",
             ]
         )
-    if False:
-        log_max_buffer_size = os.getenv("LOG_MAX_BUFFER_SIZE", None)
-        log_max_storage_length = os.getenv("LOG_MAX_STORAGE_LENGTH", None)
-        log_interval = os.getenv("LOG_INTERVAL", None)
+    if buildpackutil.should_use_new_logging_pipeline():
+        logger.info("Using (experimental) new logging pipeline")
 
-        subprocess.Popen(
-            [
-                "./bin/ringo.py",
-                "--max-buffer-size",
-                log_max_buffer_size,
-                "--max-storage-length",
-                log_max_storage_length,
-                "--interval",
-                log_interval,
-            ],
-            stdout=open("log/out.log"),
+        log_max_buffer_size = int_or_default("LOG_MAX_BUFFER_SIZE", None)
+        log_max_storage_length = int_or_default("LOG_MAX_STORAGE_LENGTH", None)
+        log_interval = int_or_default("LOG_INTERVAL", None)
+        log_chunk_size = int_or_default("LOG_CHUNK_SIZE", None)
+
+        thread = ringo.RingoThread(
+            filename="log/out.log",
+            target_url=buildpackutil.get_logs_storage_url(),
+            interval=log_interval,
+            max_buffer_size=log_max_buffer_size,
+            max_storage_length=log_max_storage_length,
+            chunk_size=log_chunk_size,
         )
+        thread.setDaemon(True)
+        thread.start()
 
 
 def service_backups():

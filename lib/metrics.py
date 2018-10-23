@@ -13,15 +13,8 @@ import buildpackutil  # noqa: E402
 import psycopg2  # noqa: E402
 import requests  # noqa: E402
 
+from buildpackutil import int_or_default  # noqa: E402
 from m2ee import logger, munin  # noqa: E402
-
-
-def int_or_default(value, default=0):
-    try:
-        return int(value)
-    except Exception as e:
-        logger.debug("Failed to coerce %s to int.", value, exc_info=True)
-        return default
 
 
 class MetricsEmitter(metaclass=ABCMeta):
