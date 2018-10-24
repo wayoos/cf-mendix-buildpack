@@ -512,7 +512,7 @@ def get_metrics_url():
 
 
 def should_use_new_logging_pipeline():
-    env_var = os.get_env("NEW_LOGGING_PIPELINE", "False")
+    env_var = os.getenv("NEW_LOGGING_PIPELINE", "False")
     try:
         use_new_logging_pipeline = strtobool(env_var)
     except ValueError as e:
