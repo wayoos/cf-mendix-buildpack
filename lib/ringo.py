@@ -73,6 +73,7 @@ class RingoThread(threading.Thread):
         max_storage_length=1000 ** 2,
         chunk_size=1000,
     ):
+        super().__init__()
         self.interval = interval
         self.filename = filename
         self.max_buffer_size = max_buffer_size
@@ -143,7 +144,8 @@ class LogBufferFlusher:
         self.loop.call_later(self.interval, self.timeout_flush_buffer)
 
     def buffer_and_flush_logs(self):
-        self.loop = asyncio.get_event_loop()
+        self.loop = asyncio.new_event_loop()
+        asyncio.set_event_loop(self.loop)
 
         # Add event handlers to main loop
         self.loop.add_reader(
