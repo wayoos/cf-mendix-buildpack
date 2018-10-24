@@ -816,7 +816,7 @@ def set_up_logging_file():
         log_interval = int_or_default("LOG_INTERVAL", None)
         log_chunk_size = int_or_default("LOG_CHUNK_SIZE", None)
 
-        ringo = ringo.Ringo(
+        ringo_ = ringo.Ringo(
             filename="log/out.log",
             target_url=buildpackutil.get_logs_storage_url(),
             interval=log_interval,
@@ -824,7 +824,7 @@ def set_up_logging_file():
             max_storage_length=log_max_storage_length,
             chunk_size=log_chunk_size,
         )
-        ringo.run()
+        ringo_.run()
     elif log_ratelimit is None:
         subprocess.Popen(
             [
