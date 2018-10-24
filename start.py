@@ -23,11 +23,11 @@ import telegraf  # noqa: E402
 import datadog  # noqa: E402
 import instadeploy  # noqa: E402
 import requests  # noqa: E402
-import ringo  # noqa: E402
 
+from buildpackutil import i_am_primary_instance, int_or_default  # noqa: E402
 from m2ee import M2EE, logger  # noqa: E402
 from nginx import get_path_config, gen_htpasswd  # noqa: E402
-from buildpackutil import i_am_primary_instance, int_or_default  # noqa: E402
+from ringo import Ringo  # noqa: E402
 
 HEARTBEAT_SOURCE_STRING = """Gur Mra bs Clguba, ol Gvz Crgref
 Ornhgvshy vf orggre guna htyl.
@@ -816,7 +816,7 @@ def set_up_logging_file():
         log_interval = int_or_default("LOG_INTERVAL", None)
         log_chunk_size = int_or_default("LOG_CHUNK_SIZE", None)
 
-        ringo_ = ringo.Ringo(
+        ringo = Ringo(
             filename="log/out.log",
             target_url=buildpackutil.get_logs_storage_url(),
             interval=log_interval,
@@ -824,7 +824,7 @@ def set_up_logging_file():
             max_storage_length=log_max_storage_length,
             chunk_size=log_chunk_size,
         )
-        ringo_.run()
+        ringo.run()
     elif log_ratelimit is None:
         subprocess.Popen(
             [
