@@ -1,3 +1,5 @@
+import logging
+
 import json
 import os
 import sys
@@ -12,6 +14,8 @@ BUILDPACK_DIR = os.path.dirname(
 )
 sys.path.insert(0, BUILDPACK_DIR)
 from lib.ringo import Ringo
+
+log = logging.getLogger(__name__)
 
 
 @requests_mock.Mocker(kw="mocked_requests")
@@ -29,7 +33,7 @@ class RingoTest(unittest.TestCase):
 
     def test_ringo(self, **kwargs):
         mocked_requests = kwargs["mocked_requests"]
-        mocked_requests.get("http://example.com", text="hello")
+        mocked_requests.post("http://example.com/", text="hello")
         ringo = Ringo(
             input_filename=self.fifo_filename, target_url="http://example.com/"
         )
@@ -40,22 +44,26 @@ class RingoTest(unittest.TestCase):
             raise RuntimeError
 
         with open(self.fifo_filename, "w") as fifo:
+            log.info("Starting writes")
             desired_lines = []
             for x in range(0, 10):
                 line = "test line {}\n".format(x)
                 desired_lines.append(line)
                 fifo.write(line)
-            sleep(3)
+
             for x in range(11, 20):
                 line = "test line {}\n".format(x)
                 desired_lines.append(line)
                 fifo.write(line)
-            sleep(3)
-            desired_output = json.dumps({"log_lines": [desired_lines]})
+            fifo.close()
+            sleep(2)
+            desired_output = json.dumps({"log_lines": desired_lines})
             self.assertTrue(mocked_requests.called)
             self.assertEqual(1, mocked_requests.call_count)
             last_req = mocked_requests.last_request
-            self.assertEqual(last_req.json, desired_output)
+            print(desired_output)
+
+            self.assertEqual(last_req.json(), desired_output)
 
         # resp = requests.get("http://example.com")
 

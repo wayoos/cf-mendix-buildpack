@@ -807,7 +807,25 @@ def set_up_logging_file():
     buildpackutil.lazy_remove_file("log/out.log")
     os.mkfifo("log/out.log")
     log_ratelimit = os.getenv("LOG_RATELIMIT", None)
-    if log_ratelimit is None:
+
+    if buildpackutil.should_use_new_logging_pipeline():
+        logger.info("Using (experimental) new logging pipeline")
+
+        log_max_buffer_size = int_or_default("LOG_MAX_BUFFER_SIZE", None)
+        log_max_storage_length = int_or_default("LOG_MAX_STORAGE_LENGTH", None)
+        log_interval = int_or_default("LOG_INTERVAL", None)
+        log_chunk_size = int_or_default("LOG_CHUNK_SIZE", None)
+
+        ringo = ringo.Ringo(
+            filename="log/out.log",
+            target_url=buildpackutil.get_logs_storage_url(),
+            interval=log_interval,
+            max_buffer_size=log_max_buffer_size,
+            max_storage_length=log_max_storage_length,
+            chunk_size=log_chunk_size,
+        )
+        ringo.run()
+    elif log_ratelimit is None:
         subprocess.Popen(
             [
                 "sed",
@@ -826,24 +844,6 @@ def set_up_logging_file():
                 "log/out.log",
             ]
         )
-    if buildpackutil.should_use_new_logging_pipeline():
-        logger.info("Using (experimental) new logging pipeline")
-
-        log_max_buffer_size = int_or_default("LOG_MAX_BUFFER_SIZE", None)
-        log_max_storage_length = int_or_default("LOG_MAX_STORAGE_LENGTH", None)
-        log_interval = int_or_default("LOG_INTERVAL", None)
-        log_chunk_size = int_or_default("LOG_CHUNK_SIZE", None)
-
-        thread = ringo.RingoThread(
-            filename="log/out.log",
-            target_url=buildpackutil.get_logs_storage_url(),
-            interval=log_interval,
-            max_buffer_size=log_max_buffer_size,
-            max_storage_length=log_max_storage_length,
-            chunk_size=log_chunk_size,
-        )
-        thread.setDaemon(True)
-        thread.start()
 
 
 def service_backups():
