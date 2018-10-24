@@ -11,7 +11,7 @@ BUILDPACK_DIR = os.path.dirname(
     os.path.dirname(os.path.dirname(os.path.realpath(__file__)))
 )
 sys.path.insert(0, BUILDPACK_DIR)
-from lib.ringo import RingoThread
+from lib.ringo import Ringo
 
 
 @requests_mock.Mocker(kw="mocked_requests")
@@ -30,19 +30,27 @@ class RingoTest(unittest.TestCase):
     def test_ringo(self, **kwargs):
         mocked_requests = kwargs["mocked_requests"]
         mocked_requests.get("http://example.com", text="hello")
-        ringo = RingoThread(
-            filename=self.fifo_filename, target_url="http://example.com/"
+        ringo = Ringo(
+            input_filename=self.fifo_filename, target_url="http://example.com/"
         )
-        ringo.setDaemon(True)
-        ringo.start()
+        # self.assertTrue(False)
+        try:
+            ringo.run()
+        except KeyboardInterrupt:
+            raise RuntimeError
 
         with open(self.fifo_filename, "w") as fifo:
             desired_lines = []
             for x in range(0, 10):
-                line = "test line {}".format(x)
+                line = "test line {}\n".format(x)
                 desired_lines.append(line)
                 fifo.write(line)
-            sleep(1)
+            sleep(3)
+            for x in range(11, 20):
+                line = "test line {}\n".format(x)
+                desired_lines.append(line)
+                fifo.write(line)
+            sleep(3)
             desired_output = json.dumps({"log_lines": [desired_lines]})
             self.assertTrue(mocked_requests.called)
             self.assertEqual(1, mocked_requests.call_count)

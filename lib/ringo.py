@@ -1,17 +1,92 @@
 #!/usr/bin/env python3
 
+import _thread
 import asyncio
 import collections
-import logging
 import json
+import logging
+import os
 import sys
 import threading
 
 import requests
 
 log = logging.getLogger(__name__)
+logging.basicConfig()
+log.setLevel(logging.DEBUG)
 # TODO: check if using the default logger works or if we need to import the
 # logger from m2ee as in lib/metrics.py
+
+
+class Ringo:
+    def __init__(self, target_url, input_filename, **kwargs):
+        self.target_url = target_url
+        self.input_filename = input_filename
+        self.kwargs = kwargs
+
+    def run(self):
+        log.info("Hello from %s", sys._getframe().f_code.co_name)
+        self.logs_server_emitter_thread = LogsServerEmitterThread(
+            self.target_url
+        )
+        self.logs_server_emitter_thread.daemon = True
+        self.logs_server_emitter_thread.start()
+
+        log.info("Hello from %s", sys._getframe().f_code.co_name)
+        self.log_buffer_flusher_thread = LogBufferFlusherThread(
+            filename=self.input_filename,
+            flush_callable=self.logs_server_emitter_thread.logs_server_emitter.add_to_buffer,
+        )
+        self.log_buffer_flusher_thread.daemon = True
+        self.log_buffer_flusher_thread.start()
+        log.info("returning yo")
+
+    def stop(self):
+        # TODO: remove
+        self.logs_server_emitter_thread.stop()
+
+
+class LogsServerEmitterThread(threading.Thread):
+    def __init__(self, target_url):
+        super().__init__()
+        self.logs_server_emitter = LogsServerEmitter(target_url)
+
+    def run(self):
+        try:
+            self.logs_server_emitter.run()
+        except Exception as e:
+            log.critical(
+                "Unhandled failure in log server emitter, panicking.",
+                exc_info=True,
+            )
+            _thread.interrupt_main()
+        finally:
+            # TODO: do we need a close?
+            pass
+
+    def stop(self):
+        # TODO remove?
+        self.logs_server_emitter.stop()
+
+
+class LogBufferFlusherThread(threading.Thread):
+    def __init__(self, filename, flush_callable):
+        super().__init__()
+        self.log_buffer_flusher = LogBufferFlusher(
+            filename=filename, flush_callable=flush_callable
+        )
+
+    def run(self):
+        try:
+            self.log_buffer_flusher.buffer_and_flush_logs()
+        except Exception as e:
+            log.critical(
+                "Unhandled failure in log buffer flusher, panicking.",
+                exc_info=True,
+            )
+            _thread.interrupt_main()
+        finally:
+            self.log_buffer_flusher.close()
 
 
 class LogsServerEmitter:
@@ -23,22 +98,62 @@ class LogsServerEmitter:
         100mb. This (roughly) equates to 400,000 log lines, assuming an average
         size of 256 byes / line.
         """
-        self.target_url = target_url
-        self.ring_buffer = collections.deque(maxlen=1)
-        self.buffer_size = 0
+        self._target_url = target_url
 
-    def add_to_buffer(self, lines):
-        for line in lines:
-            self.ring_buffer.append(lines)
-            # We assume only ASCII chars; since this is probably faster than
-            # encoding to UTF-8 and checking bytes. If someone logs only in
-            # Chinese, then they will use more memory than desired, yolo.
-            self.buffer_size.append(len(line))
+        self._buffer = collections.deque()
+        self._buffer_size = 0
+        self._chunk_size = 1000  # TODO: don't hardcode
+        self._num_of_lines_to_flush = 0
+        self._loop = None
 
-    def emit(self, lines):
-        # TODO: make this async?
-        # TODO: buffering on failure (wrap this in a class?)
-        # TODO: split each line into a dict of timestamp and line
+    def stop(self):
+        # TODO: remove?
+        self.loop.close()
+
+    def run(self):
+        log.info("Hello from %s", sys._getframe().f_code.co_name)
+        self.loop = asyncio.new_event_loop()
+        asyncio.set_event_loop(self.loop)
+
+        self.loop.call_later(1, self._flush_buffer)
+        self.loop.run_forever()
+
+    def add_to_buffer(self, line):
+        log.info("Hello from %s", sys._getframe().f_code.co_name)
+        self._buffer.append(line)
+        # We assume only ASCII chars; since this is probably faster than
+        # encoding to UTF-8 and checking bytes. If someone logs only in
+        # Chinese, then they will use more memory than desired, yolo.
+        self._buffer_size += len(line)
+        # TODO: threadsafe counter?
+        # TODO: do we even need the counter?
+        self._num_of_lines_to_flush += 1
+
+    def _flush_buffer(self):
+        log.info("Hello from %s", sys._getframe().f_code.co_name)
+        if len(self._buffer) > 0:
+            if self._num_of_lines_to_flush > self._chunk_size:
+                # If there are still messages left, and
+                flush_up_to = self._chunk_size
+            else:
+                flush_up_to = self._num_of_lines_to_flush
+            lines = []
+            for x in range(0, flush_up_to):
+                line = self._buffer.popleft()
+                lines.append(line)
+                self._buffer_size -= len(line)
+                self._num_of_lines_to_flush -= 1
+            self._emit(lines)
+            # TODO: fallback logic
+        else:
+            return
+
+        #  schedule a new run for INTERVAL time?
+
+    def _emit(self, lines):
+        logger.info("Hello from %s", sys._getframe().f_code.co_name)
+        # TODO: make this async (or a future)?
+        # TODO: split each line into a dict of timestamp and line (but where?)
         dict_to_post = {"log_lines": lines}
         json_lines = json.dumps(dict_to_post)
         try:
@@ -46,14 +161,12 @@ class LogsServerEmitter:
                 self.target_url, json=json_lines, timeout=10
             )
         except Exception as e:
-            log.debug(
-                "Failed to send metrics to trends server.", exc_info=True
-            )
+            log.info("Failed to send metrics to trends server.", exc_info=True)
             # Do buffering here
         if response.status_code == 200:
             return
 
-        log.debug(
+        log.info(
             "Posting logs to logs storage server failed. Got status code %s "
             "for URL %s, with body %s.",
             response.status_code,
@@ -63,62 +176,43 @@ class LogsServerEmitter:
         # Do buffering here
 
 
-class RingoThread(threading.Thread):
+class LogBufferFlusher:
     def __init__(
         self,
-        filename,
-        target_url,
+        filename=None,
+        flush_callable=sys.stdout.write,
         interval=1,
         max_buffer_size=1000 ** 2,
         max_storage_length=1000 ** 2,
         chunk_size=1000,
     ):
-        super().__init__()
-        self.interval = interval
-        self.filename = filename
-        self.max_buffer_size = max_buffer_size
-        self.max_storage_length = max_storage_length
-        self.chunk_size = chunk_size
-
-        self.logs_emitter = LogsServerEmitter(target_url=target_url)
-
-    def run(self):
-        run_logger_buffer_flusher(
-            self.interval,
-            self.max_buffer_size,
-            self.max_storage_length,
-            self.filename,
-            cls=ChunkedLogBufferFlusher,
-            chunk_size=self.chunk_size,
-            flush_callable=self.logs_emitter.emit,
-        )
-        # TODO: do the same for the emitter
-
-
-class LogBufferFlusher:
-    def __init__(
-        self, interval, max_buffer_size, max_storage_length, filename=None
-    ):
         self.buffer = collections.deque(maxlen=max_storage_length)
         if filename:
-            self.input_file_object = open(filename, "r")
+            self.input_file_object = os.fdopen(
+                os.open(filename, os.O_RDONLY | os.O_NONBLOCK)
+            )
         else:
             self.input_file_object = sys.stdin
 
         self.buffer_size = 0
         self.interval = interval
         self.max_buffer_size = max_buffer_size
+        self.flush_callable = flush_callable
         self.num_of_lines_to_flush = 0
         self.eof = False
         self.chunk_size = 1000
 
     def flush_buffer(self):
+        log.info("Hello from LogFufferFlusher flush buffer")
         if self.num_of_lines_to_flush > 0:
             line = self.buffer.popleft()
-            sys.stdout.write(line)
+            self.flush_callable(line)
             self.buffer_size -= len(line)
             self.num_of_lines_to_flush -= 1
         else:
+            if self.flush_callable == sys.stdout.write:
+                log.warning("lalala")
+                self.loop.remove_writer(sys.stdout.fileno())
             self.loop.remove_writer(sys.stdout.fileno())
 
             if self.eof:
@@ -129,15 +223,20 @@ class LogBufferFlusher:
         self.loop.add_writer(sys.stdout.fileno(), self.flush_buffer)
 
     def buffer_loglines(self):
-        line = self.input_file_object.readline()
-        if line:
-            self.buffer.append(line)
-            self.buffer_size += len(line)
+        log.info("Hello from %s", sys._getframe().f_code.co_name)
+        while True:
+            line = self.input_file_object.readline()
+            if line:
+                log.info("buffering line %s", line)
+                self.buffer.append(line)
+                self.buffer_size += len(line)
 
-            if self.buffer_size > self.max_buffer_size:
-                self.schedule_flush_buffer()
-        else:
-            self.eof = True
+                if self.buffer_size > self.max_buffer_size:
+                    self.schedule_flush_buffer()
+            else:
+                log.warning("EOF?")
+                self.eof = True
+                return
 
     def timeout_flush_buffer(self):
         self.schedule_flush_buffer()
@@ -215,5 +314,11 @@ def run_logger_buffer_flusher(
         logger_buffer_flusher.buffer_and_flush_logs()
     except KeyboardInterrupt:
         pass
+    except Exception as e:
+        log.critical(
+            "Unhandled failure in log buffer flusher, panicking.",
+            exc_info=True,
+        )
+        _thread.interrupt_main()
     finally:
         logger_buffer_flusher.close()
