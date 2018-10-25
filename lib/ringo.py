@@ -131,24 +131,34 @@ class LogsServerEmitter:
             return
         new_buffer_size = self._buffer_size + len(line)
         removed_count = 0
-        while new_buffer_size >= self.max_buffer_size:
-            removed_line = self._buffer.popleft()
-            new_buffer_size -= len(removed_line)
-            removed_count += 1
-        log.info(
-            "Buffer was full with size %s. Removed %s lines to make space",
-            new_buffer_size,
-            removed_count,
-        )
+
+        if new_buffer_size >= self.max_buffer_size:
+            while new_buffer_size >= self.max_buffer_size:
+                removed_line = self._buffer.popleft()
+                new_buffer_size -= len(removed_line)
+                removed_count += 1
+            log.info(
+                "Buffer was full with size %s. Removed %s lines to make space",
+                new_buffer_size,
+                removed_count,
+            )
 
         self._buffer.append(line)
         # We assume only ASCII chars; since this is probably faster than
         # encoding to UTF-8 and checking bytes. If someone logs only in
         # Chinese, then they will use more memory than desired, yolo.
         self._buffer_size += len(line)
+        log.info(
+            "Added line to buffer. Items in buffer %s. Buffer length %s chars",
+            len(self.buffer),
+            self._buffer_size,
+        )
 
     def _flush_buffer(self):
         log.info("Hello from %s", sys._getframe().f_code.co_name)
+        log.info(
+            "Flushing buffer. Current items in buffer %s", len(self._buffer)
+        )
         if len(self._buffer) > 0:
             if len(self._buffer) > self._chunk_size:
                 # If there are still messages left, and
