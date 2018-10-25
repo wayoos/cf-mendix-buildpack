@@ -817,7 +817,7 @@ def set_up_logging_file():
         log_chunk_size = int_or_default("LOG_CHUNK_SIZE", None)
 
         ringo = Ringo(
-            filename="log/out.log",
+            input_filename="log/out.log",
             target_url=buildpackutil.get_logs_storage_url(),
             interval=log_interval,
             max_buffer_size=log_max_buffer_size,
