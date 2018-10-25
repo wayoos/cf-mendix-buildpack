@@ -150,7 +150,7 @@ class LogsServerEmitter:
         self._buffer_size += len(line)
         log.info(
             "Added line to buffer. Items in buffer %s. Buffer length %s chars",
-            len(self.buffer),
+            len(self._buffer),
             self._buffer_size,
         )
 
