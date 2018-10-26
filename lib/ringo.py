@@ -3,6 +3,7 @@
 import _thread
 import asyncio
 import collections
+import datetime
 import json
 import logging
 import os
@@ -236,15 +237,29 @@ class LogBufferFlusher:
             self.input_file_object = sys.stdin
 
         self.flush_callable = flush_callable
+        self.timestamp_length = len("2018-10-26 11:23:41.479")
 
     def buffer_loglines(self):
         log.log(1, "Hello from %s", sys._getframe().f_code.co_name)
         while True:
             line = self.input_file_object.readline()
             if line:
-                sys.stdout.write(line)
+                try:
+                    timestamp = line[0 : self.timestamp_length]
+                    body = line[self.timestamp_length + 1 :]
+                except IndexError as e:
+                    log.warning(
+                        "Failed to extract timestamp from log line, using current time instead",
+                        exc_info=True,
+                    )
+                    timestamp = datetime.datetime.now().strftime(
+                        "%Y-%m-%d %H-%M-%S.%f"
+                    )[0 : self.timestamp_length]
+                    body = line
+
+                sys.stdout.write(body)
                 log.log(1, "sending line to emitter %s", line)
-                self.flush_callable(line)
+                self.flush_callable((timestamp, body))
             else:
                 log.log(1, "EOF")
                 return
