@@ -32,14 +32,14 @@ class Ringo:
         )
 
     def run(self):
-        log.info("Hello from %s", sys._getframe().f_code.co_name)
+        log.log(1, "Hello from %s", sys._getframe().f_code.co_name)
         self.logs_server_emitter_thread.daemon = True
         self.logs_server_emitter_thread.start()
 
-        log.info("Hello from %s", sys._getframe().f_code.co_name)
+        log.log(1, "Hello from %s", sys._getframe().f_code.co_name)
         self.log_buffer_flusher_thread.daemon = True
         self.log_buffer_flusher_thread.start()
-        log.info("returning yo")
+        log.log(1, "returning yo")
 
     def stop(self):
         # TODO: remove
@@ -112,7 +112,7 @@ class LogsServerEmitter:
         self.loop.close()
 
     def run(self):
-        log.info("Hello from %s", sys._getframe().f_code.co_name)
+        log.log(1, "Hello from %s", sys._getframe().f_code.co_name)
         self.loop = asyncio.new_event_loop()
         asyncio.set_event_loop(self.loop)
 
@@ -120,7 +120,7 @@ class LogsServerEmitter:
         self.loop.run_forever()
 
     def add_to_buffer(self, line):
-        log.info("Hello from %s", sys._getframe().f_code.co_name)
+        log.log(1, "Hello from %s", sys._getframe().f_code.co_name)
         if len(line) > self.max_buffer_size:
             log.warning(
                 "Gigantic line with length %s chars was added. This is larger "
@@ -148,16 +148,17 @@ class LogsServerEmitter:
         # encoding to UTF-8 and checking bytes. If someone logs only in
         # Chinese, then they will use more memory than desired, yolo.
         self._buffer_size += len(line)
-        log.info(
+        log.log(
+            1,
             "Added line to buffer. Items in buffer %s. Buffer length %s chars",
             len(self._buffer),
             self._buffer_size,
         )
 
     def _flush_buffer(self):
-        log.info("Hello from %s", sys._getframe().f_code.co_name)
-        log.info(
-            "Flushing buffer. Current items in buffer %s", len(self._buffer)
+        log.log(1, "Hello from %s", sys._getframe().f_code.co_name)
+        log.log(
+            1, "Flushing buffer. Current items in buffer %s", len(self._buffer)
         )
         if len(self._buffer) > 0:
             if len(self._buffer) > self._chunk_size:
@@ -165,7 +166,8 @@ class LogsServerEmitter:
                 flush_up_to = self._chunk_size
             else:
                 flush_up_to = len(self._buffer)
-            log.info(
+            log.log(
+                1,
                 "We will flush %s lines. Total lines to flush is %s",
                 flush_up_to,
                 len(self._buffer),
@@ -176,13 +178,15 @@ class LogsServerEmitter:
                 lines.append(line)
             self._emit(lines)
             if len(self._buffer) > 0:
-                log.info("Buffer is not yet empty. Calling flush buffer soon.")
+                log.log(
+                    1, "Buffer is not yet empty. Calling flush buffer soon."
+                )
                 self.loop.call_soon(self._flush_buffer)
                 return
         else:
-            log.info("Buffer is empty, nothing to do.")
+            log.log(1, "Buffer is empty, nothing to do.")
 
-        log.info("Scheduling next flush call for 1s time.")
+        log.log(1, "Scheduling next flush call for 1s time.")
         # TODO: add an interval instead of hardcoding
         self.loop.call_later(1, self._flush_buffer)
 
@@ -191,7 +195,7 @@ class LogsServerEmitter:
         self._buffer.extendleft(lines)
 
     def _emit(self, lines):
-        log.info("Hello from %s", sys._getframe().f_code.co_name)
+        log.log(1, "Hello from %s", sys._getframe().f_code.co_name)
         # TODO: make this async (or a future)?
         # TODO: split each line into a dict of timestamp and line (but where?)
         dict_to_post = {"log_lines": lines}
@@ -221,29 +225,28 @@ class LogsServerEmitter:
 class LogBufferFlusher:
     def __init__(self, filename=None, flush_callable=sys.stdout.write):
         if filename:
-            log.info(
-                "Setting up log buffer flusher with filename %s", filename
+            log.log(
+                1, "Setting up log buffer flusher with filename %s", filename
             )
             self.input_file_object = os.fdopen(
                 os.open(filename, os.O_RDONLY | os.O_NONBLOCK)
             )
         else:
-            log.info("Setting up log buffer flusher with stdin")
+            log.log(1, "Setting up log buffer flusher with stdin")
             self.input_file_object = sys.stdin
 
         self.flush_callable = flush_callable
 
     def buffer_loglines(self):
-        log.info("Hello from %s", sys._getframe().f_code.co_name)
+        log.log(1, "Hello from %s", sys._getframe().f_code.co_name)
         while True:
             line = self.input_file_object.readline()
             if line:
                 sys.stdout.write(line)
-                log.info("sending line to emitter %s", line)
+                log.log(1, "sending line to emitter %s", line)
                 self.flush_callable(line)
             else:
-                log.warning("EOF?")
-                self.eof = True
+                log.log(1, "EOF")
                 return
 
     def run(self):
