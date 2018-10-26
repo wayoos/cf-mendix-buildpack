@@ -235,10 +235,10 @@ class LogBufferFlusher:
 
     def buffer_loglines(self):
         log.info("Hello from %s", sys._getframe().f_code.co_name)
-        mini_buffer = []
         while True:
             line = self.input_file_object.readline()
             if line:
+                sys.stdout.write(line)
                 log.info("sending line to emitter %s", line)
                 self.flush_callable(line)
             else:
