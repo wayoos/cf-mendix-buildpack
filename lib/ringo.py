@@ -4,9 +4,9 @@ import _thread
 import asyncio
 import collections
 import datetime
-import json
 import logging
 import os
+import re
 import sys
 import threading
 
@@ -53,7 +53,7 @@ class LogsServerEmitterThread(threading.Thread):
     def run(self):
         try:
             self.logs_server_emitter.run()
-        except Exception as e:
+        except Exception:
             log.critical(
                 "Unhandled failure in log server emitter, panicking.",
                 exc_info=True,
@@ -78,7 +78,7 @@ class LogBufferFlusherThread(threading.Thread):
     def run(self):
         try:
             self.log_buffer_flusher.run()
-        except Exception as e:
+        except Exception:
             log.critical(
                 "Unhandled failure in log buffer flusher, panicking.",
                 exc_info=True,
@@ -208,7 +208,7 @@ class LogsServerEmitter:
             response = requests.post(
                 self._target_url, json=dict_to_post, timeout=10
             )
-        except Exception as e:
+        except Exception:
             log.debug("Failed to send metrics to logs server.", exc_info=True)
             self._rebuffer_lines(lines)
 
@@ -228,36 +228,46 @@ class LogsServerEmitter:
 class LogBufferFlusher:
     def __init__(self, filename=None, flush_callable=sys.stdout.write):
         if filename:
-            log.log(
-                1, "Setting up log buffer flusher with filename %s", filename
+            log.debug(
+                "Setting up log buffer flusher with filename %s", filename
             )
             self.input_file_object = os.fdopen(
                 os.open(filename, os.O_RDONLY | os.O_NONBLOCK)
             )
         else:
-            log.log(1, "Setting up log buffer flusher with stdin")
+            log.debug("Setting up log buffer flusher with stdin")
             self.input_file_object = sys.stdin
 
         self.flush_callable = flush_callable
         self.timestamp_length = len("2018-10-26 11:23:41.479")
+        self.timestamp_regex = re.compile(
+            "(\\d{4})-(\\d{2})-(\\d{2})T(\\d{2}):(\\d{2}):(\\d{2}(?:\\.?\\d+))"
+        )
+
+    def _is_timestamp(self, maybe_timestamp):
+        if self.tiemstamp_regex.match(maybe_timestamp):
+            return True
+        else:
+            return False
 
     def buffer_loglines(self):
         log.log(1, "Hello from %s", sys._getframe().f_code.co_name)
+        # We don't use UTC, but why?
+        previous_timestamp = datetime.datetime.now().isoformat()
         while True:
             line = self.input_file_object.readline()
             if line:
-                try:
-                    timestamp = line[0 : self.timestamp_length]
-                    body = line[self.timestamp_length + 1 :]
-                except IndexError as e:
-                    log.warning(
-                        "Failed to extract timestamp from log line, using current time instead",
-                        exc_info=True,
-                    )
-                    timestamp = datetime.datetime.now().strftime(
-                        "%Y-%m-%d %H-%M-%S.%f"
-                    )[0 : self.timestamp_length]
+                line = line.strip()
+                match = self.timestamp_regex.match(line)
+                if match:
+                    end = match.end()
+                    timestamp = line[match.start() : end]
+                    body = line[end + 1 :]
+                else:
+                    timestamp = previous_timestamp
                     body = line
+
+                previous_timestamp = timestamp
 
                 sys.stdout.write(body)
                 log.log(1, "sending line to emitter %s", line)
