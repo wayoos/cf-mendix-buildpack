@@ -176,13 +176,18 @@ class LogsServerEmitter:
             for x in range(0, flush_up_to):
                 line = self._buffer.popleft()
                 lines.append(line)
-            self._emit(lines)
-            if len(self._buffer) > 0:
+            success = self._emit(lines)
+            if len(self._buffer) > 0 and success:
                 log.log(
                     1, "Buffer is not yet empty. Calling flush buffer soon."
                 )
                 self.loop.call_soon(self._flush_buffer)
                 return
+            else:
+                log.debug(
+                    "Emit was unsuccessful, waiting 1s to avoid DOSing "
+                    "log storage server"
+                )
         else:
             log.log(1, "Buffer is empty, nothing to do.")
 
@@ -213,7 +218,7 @@ class LogsServerEmitter:
             self._rebuffer_lines(lines)
 
         if response.status_code == 200:
-            return
+            return True
 
         log.debug(
             "Posting logs to logs storage server failed. Got status code %s "
@@ -244,12 +249,6 @@ class LogBufferFlusher:
             "(\\d{4})-(\\d{2})-(\\d{2})T(\\d{2}):(\\d{2}):(\\d{2}(?:\\.?\\d+))"
         )
 
-    def _is_timestamp(self, maybe_timestamp):
-        if self.tiemstamp_regex.match(maybe_timestamp):
-            return True
-        else:
-            return False
-
     def buffer_loglines(self):
         log.log(1, "Hello from %s", sys._getframe().f_code.co_name)
         # We don't use UTC, but why?
@@ -269,7 +268,7 @@ class LogBufferFlusher:
 
                 previous_timestamp = timestamp
 
-                sys.stdout.write(body)
+                sys.stdout.write("{}\n".format(body))
                 log.log(1, "sending line to emitter %s", line)
                 self.flush_callable({"timestamp": timestamp, "line": body})
             else:
