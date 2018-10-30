@@ -263,7 +263,7 @@ class LogBufferFlusher:
                 log.log(1, "sending line to emitter %s", line)
                 self.flush_callable({"timestamp": timestamp, "line": body})
             else:
-                log.info(1, "EOF - no more data should follow.")
+                log.info("EOF - no more data should follow.")
                 self.loop.remove_reader(self.input_file_object.fileno())
                 return
 
