@@ -137,7 +137,7 @@ class LogsServerEmitter:
                 removed_line = self._buffer.popleft()
                 new_buffer_size -= len(removed_line)
                 removed_count += 1
-            log.info(
+            log.debug(
                 "MENDIX LOGGING FRAMEWORK: "
                 "Buffer was full with size %s. Removed %s lines to make space",
                 new_buffer_size,
@@ -167,8 +167,7 @@ class LogsServerEmitter:
                 flush_up_to = self._chunk_size
             else:
                 flush_up_to = len(self._buffer)
-            log.log(
-                1,
+            log.debug(
                 "We will flush %s lines. Total lines to flush is %s",
                 flush_up_to,
                 len(self._buffer),
@@ -192,7 +191,7 @@ class LogsServerEmitter:
         self.loop.call_later(1, self._flush_buffer)
 
     def _rebuffer_lines(self, lines):
-        log.info("Rebuffering %s lines", len(lines))
+        log.debug("Rebuffering %s lines", len(lines))
         self._buffer.extendleft(lines)
 
     def _emit(self, lines):
@@ -205,6 +204,7 @@ class LogsServerEmitter:
             log.log(
                 1, "Posting to %s with body %s", self._target_url, dict_to_post
             )
+            log.debug("Sending %s lines to logs server", len(lines))
             response = requests.post(
                 self._target_url, json=dict_to_post, timeout=10
             )
@@ -263,8 +263,7 @@ class LogBufferFlusher:
                 log.log(1, "sending line to emitter %s", line)
                 self.flush_callable({"timestamp": timestamp, "line": body})
             else:
-                log.info("EOF - no more data should follow.")
-                self.loop.remove_reader(self.input_file_object.fileno())
+                log.debug("EOF - no more data should follow.")
                 return
 
     def run(self):
