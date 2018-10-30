@@ -200,14 +200,13 @@ class LogsServerEmitter:
         # TODO: make this async (or a future)?
         # TODO: split each line into a dict of timestamp and line (but where?)
         dict_to_post = {"log_lines": lines}
-        json_lines = json.dumps(dict_to_post)
         try:
             # TODO: configurable timeout
             log.log(
-                1, "Posting to %s with body %s", self._target_url, json_lines
+                1, "Posting to %s with body %s", self._target_url, dict_to_post
             )
             response = requests.post(
-                self._target_url, json=json_lines, timeout=10
+                self._target_url, json=dict_to_post, timeout=10
             )
         except Exception as e:
             log.debug("Failed to send metrics to logs server.", exc_info=True)
