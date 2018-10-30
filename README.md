@@ -315,7 +315,18 @@ An example `UUID` is `aab8a0a1-1370-467e-918d-3a243b0ae160` and `LicenseKey` is 
 Logging and Debugging
 ====
 
-To debug the code of the buildpack itself, set the `BUILDPACK_XTRACE` environment variable to `true`.
+### Buildpack debugging
+
+To debug the code of the buildpack itself, set the `BUILDPACK_XTRACE` environment variable to `true`. This sets *all* logging in the buildpack to DEBUG level.
+
+If you need finer-grained control, e.g. to debug a single module (either inside the buildpack or elsewhere), you can configure logging levels on a module by module basis.
+
+For example, to set `lib.ringo` logging level to `1` (the lowest level possible), do the following:
+
+    `cf set-env <YOUR_APP> BUILDPACK_LOGGING_CONFIG '{"lib.ringo": 1}'`
+
+The contents of the `BUILDPACK_LOGGING_CONFIG` environment variable should be JSON, mapping module names as strings, to integer log level values.
+To find the relevant log levels, see the Python stdlib logging [documentation](https://docs.python.org/3/howto/logging.html#logging-levels).
 
 ### App log levels
 

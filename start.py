@@ -1156,6 +1156,36 @@ def start_logging_heartbeat():
     thread.start()
 
 
+def configure_buildpack_logging():
+    if not "BUILDPACK_LOGGING_CONFIG" in os.environ:
+        return
+    try:
+        buildpack_logging_config = json.loads(
+            os.environ["BUILDPACK_LOGGING_CONFIG"]
+        )
+    except json.decoder.JSONDecodeError:
+        logger.warning(
+            "MENDIX BUILDPACK_LOGGING_CONFIG: Invalid configuration specified",
+            exc_info=True,
+        )
+        return
+    logger.info(
+        "MENDIX BUILDPACK_LOGGING_CONFIG: Using custom logging config: %s",
+        buildpack_logging_config,
+    )
+    for module_name, log_level in buildpack_logging_config.items():
+        if not isinstance(log_level, int):
+            try:
+                log_level = int(log_evel)
+            except ValueError:
+                logger.info(
+                    "Logging incorrectly configured for module %s, level %s",
+                    module_name,
+                    log_level,
+                )
+        logging.getLogger(module_name).setLevel(log_level)
+
+
 def complete_start_procedure_safe_to_use_for_restart(m2ee):
     buildpackutil.mkdir_p("model/lib/userlib")
     set_up_logging_file()
@@ -1172,6 +1202,13 @@ if __name__ == "__main__":
             "CF_INSTANCE_INDEX environment variable not found. Assuming "
             "responsibility for scheduled events execution and database "
             "synchronization commands."
+        )
+    try:
+        configure_buildpack_logging()
+    except Exception:
+        logger.info(
+            "MENDIX BUILDPACK_LOGGING: Failed to configure buildpack_logging",
+            exc_info=True,
         )
     pre_process_m2ee_yaml()
     activate_license()

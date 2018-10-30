@@ -13,8 +13,8 @@ import threading
 import requests
 
 log = logging.getLogger(__name__)
-logging.basicConfig()
-log.setLevel(logging.DEBUG)
+# logging.basicConfig()
+# log.setLevel(logging.DEBUG)
 # TODO: check if using the default logger works or if we need to import the
 # logger from m2ee as in lib/metrics.py
 
