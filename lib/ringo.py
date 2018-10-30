@@ -13,8 +13,6 @@ import threading
 import requests
 
 log = logging.getLogger(__name__)
-# logging.basicConfig()
-# log.setLevel(logging.DEBUG)
 # TODO: check if using the default logger works or if we need to import the
 # logger from m2ee as in lib/metrics.py
 
@@ -124,6 +122,7 @@ class LogsServerEmitter:
         log.log(1, "Hello from %s", sys._getframe().f_code.co_name)
         if len(line) > self.max_buffer_size:
             log.warning(
+                "MENDIX LOGGING FRAMEWORK: "
                 "Gigantic line with length %s chars was added. This is larger "
                 "than max buffer size %s. Discarding.",
                 len(line),
@@ -139,6 +138,7 @@ class LogsServerEmitter:
                 new_buffer_size -= len(removed_line)
                 removed_count += 1
             log.info(
+                "MENDIX LOGGING FRAMEWORK: "
                 "Buffer was full with size %s. Removed %s lines to make space",
                 new_buffer_size,
                 removed_count,
@@ -203,21 +203,24 @@ class LogsServerEmitter:
         json_lines = json.dumps(dict_to_post)
         try:
             # TODO: configurable timeout
+            log.log(
+                1, "Posting to %s with body %s", self._target_url, json_lines
+            )
             response = requests.post(
                 self._target_url, json=json_lines, timeout=10
             )
         except Exception as e:
-            log.info("Failed to send metrics to trends server.", exc_info=True)
+            log.debug("Failed to send metrics to logs server.", exc_info=True)
             self._rebuffer_lines(lines)
 
         if response.status_code == 200:
             return
 
-        log.info(
+        log.debug(
             "Posting logs to logs storage server failed. Got status code %s "
             "for URL %s, with body %s.",
             response.status_code,
-            self.target_url,
+            self._target_url,
             response.text,
         )
         self._rebuffer_lines(lines)
@@ -259,9 +262,10 @@ class LogBufferFlusher:
 
                 sys.stdout.write(body)
                 log.log(1, "sending line to emitter %s", line)
-                self.flush_callable((timestamp, body))
+                self.flush_callable({"timestamp": timestamp, "line": body})
             else:
-                log.log(1, "EOF")
+                log.info(1, "EOF - no more data should follow.")
+                self.loop.remove_reader(self.input_file_object.fileno())
                 return
 
     def run(self):
