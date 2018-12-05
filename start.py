@@ -528,6 +528,8 @@ def get_certificate_authorities():
                     output_file.write(ca)
                 files.append(location)
                 n += 1
+                logging.info("Add certificate authorities in Java cacerts.")
+                os.system('.local/usr/lib/jvm/jdk-8-oracle-x64/bin/keytool -import -trustcacerts -file .local/certificate_authorities.0.crt -keystore .local/usr/lib/jvm/jre-8-oracle-x64/lib/security/cacerts -storepass changeit -alias extCert -noprompt')
         config["CACertificates"] = ",".join(files)
     return config
 
